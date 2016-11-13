@@ -2,7 +2,9 @@ package solrtest;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrQuery;
@@ -18,7 +20,6 @@ import solrtest.model.Employee;
 
 public class SolrTest {
 	private static final String urlString = "http://localhost:8983/solr/test";
-	private static final SolrClient solr = new HttpSolrClient.Builder(urlString).build();
 	private List<Employee> employees = new ArrayList<Employee>();
 	
 	public SolrTest() {
@@ -27,51 +28,76 @@ public class SolrTest {
 		employees.add(new Employee().setId("0205032").setName("Jamiul Jahid").setAge(33).setShortBio("Software Engineer, Amazon, UTSA grad, buet grad"));
 	}
 	
-	public void addDocuments() {
+	public void addDocuments() throws Exception {
 		for(Employee employee : employees) {
 			addDocument(employee);
 		}
 	}
 	
-	public void addDocument(Employee employee) {
+	public void addDocument(Employee employee) throws Exception {
+		SolrClient solr = new HttpSolrClient.Builder(urlString).build();
 		SolrInputDocument document = new SolrInputDocument();
 		document.addField("id", employee.getId());
 		document.addField("name_t", employee.getName());
 		document.addField("age_i", employee.getAge());
 		document.addField("bio_t", employee.getShortBio());
+		document.addField("designation_s", "Software Engineer");
 		try {
 			UpdateResponse response = solr.add(document);
 			solr.commit();
 			System.out.println("Updated document for employee " + employee.getName());
+			solr.close();
 		} catch (Exception e) {
 			e.printStackTrace();
+			throw e;
 		}
 	}
 	
-	public void queryDocumnets() {
+	public void updateDocument(String employeeId) throws Exception {		 
+		SolrClient solr = new HttpSolrClient.Builder(urlString).build();
+		SolrInputDocument sdoc = new SolrInputDocument();
+		sdoc.addField("id", employeeId);
+		Map<String, Object> fieldModifier = new HashMap<>(1);
+		fieldModifier.put("set", "Senior Software Developer");
+		sdoc.addField("designation_s", fieldModifier);  // add the map as the field value
+		 
+		try {
+			solr.add(sdoc);
+			solr.commit();
+			System.out.println("Updated document for employee " + employeeId);
+			solr.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw e;
+		}
+	}
+	
+	public int queryDocuments() throws Exception {
+		SolrClient solr = new HttpSolrClient.Builder(urlString).build();
+		
 		String keyword = "buet";
 		SolrQuery query = new SolrQuery();
-		query.setFields("id", "name_t", "age_i");
+		query.setFields("id", "name_t", "age_i", "designation_s");
 		query.set("q", "bio_t:" + keyword);
 		try {
 			QueryResponse response = solr.query(query);
 			SolrDocumentList list = response.getResults();
 			for(SolrDocument document : list) {
 				System.out.println("Employee id = " + document.getFieldValue("id") + ", name = " + document.getFieldValue("name_t")
-						+ ", age = " + document.getFieldValue("age_i"));
+						+ ", age = " + document.getFieldValue("age_i") + ", designation = " + document.getFieldValue("designation_s"));
 			}
-		} catch (SolrServerException e) {
-			// TODO Auto-generated catch block
+			solr.close();
+			return list.size();
+		} catch (Exception e) {
 			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			throw e;
 		}
 	}
 	
 	public static void main(String[] args) {
 		SolrTest solrTest = new SolrTest();
 		//solrTest.addDocuments();
-		solrTest.queryDocumnets();
+		//solrTest.queryDocumnets();
+		//solrTest.updateDocument("0901826");
 	}
 }

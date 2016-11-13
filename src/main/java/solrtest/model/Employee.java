@@ -3,6 +3,7 @@ package solrtest.model;
 public class Employee {
 	private String id;
 	private String name;
+	private String designation;
 	private int age;
 	private String shortBio;
 	
@@ -18,6 +19,13 @@ public class Employee {
 	}
 	public Employee setName(String name) {
 		this.name = name;
+		return this;
+	}
+	public String getDesignation() {
+		return designation;
+	}
+	public Employee setDesignation(String designation) {
+		this.designation = designation;
 		return this;
 	}
 	public int getAge() {
